@@ -8,8 +8,8 @@ class AppLatLong {
 class UzbekistanLocation extends AppLatLong {
   const UzbekistanLocation(
       {
-
-      super.lat= 41.2720237,
-      super.long = 69.1887765
+      super.long= 12.3456789,
+      super.lat = 98.7654321
       });
+//   41.2720248,69.1887656
 }

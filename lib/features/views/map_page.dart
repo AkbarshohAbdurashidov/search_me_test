@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:search_me_test/features/data/models/address_detail_model.dart';
+import 'package:search_me_test/features/data/repository/address_dateail_repository.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 import '../data/models/app_lat_long.dart';
@@ -17,6 +20,8 @@ const Color bottonNavBgColor = Color(0x52EBEDF4);
 const Color chipLabelsColor = Color(0x332461D3);
 
 class _MapPageState extends State<MapPage> {
+  final mapControllerCompleter = Completer<YandexMapController>();
+  int _selectedIndex = 0;
   final List<String> chipLabels = [
     'Inglis tili',
     'IELTS',
@@ -25,9 +30,8 @@ class _MapPageState extends State<MapPage> {
     'UI/UX',
     'Frontend',
   ];
-
-  final mapControllerCompleter = Completer<YandexMapController>();
-  int _selectedIndex = 0;
+  String addressDetail = "Loading your location";
+  final AddressDetailRepository repository = AddressDetailRepository();
 
   void _onItemTapped(int index) {
     setState(() {
@@ -79,136 +83,7 @@ class _MapPageState extends State<MapPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          showModalBottomSheet(
-            backgroundColor: Colors.white,
-            barrierColor: Colors.transparent,
-            context: context,
-            builder: (BuildContext context) {
-              return Stack(children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Search bar
-                    Container(
-                      height: 60,
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(
-                          left: 24, right: 24, top: 30, bottom: 20),
-                      decoration: BoxDecoration(
-                        color: bottonNavBgColor.withOpacity(0.8),
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(24)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: bottonNavBgColor.withOpacity(0.3),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          labelText: 'What cource are you looking?',
-                          enabled: true,
-                          prefixIcon: Icon(
-                            Icons.search,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // text Popular courses
-                    Container(
-                        child: const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text("Popular courses",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black)),
-                    )),
 
-                    Container(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: List.generate(
-                            chipLabels.length,
-                            (index) {
-                              return Chip(
-                                elevation: 10,
-                                label: Text(
-                                  chipLabels[index],
-                                  style: TextStyle(color: Color(0xFF2045FE)),
-                                ),
-                                backgroundColor: chipLabelsColor,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(20))),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    // text My address
-                    Container(
-                      child: Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text("My Address",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black)),
-                      ),
-                    ),
-                    // GridView
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Container(
-                        height: 130,
-                        child: Scrollbar(
-                          child: ListView(
-                            scrollDirection: Axis.vertical,
-                            children: const [
-                              Card(
-                                color: Color(0xFFEAEBF0),
-                                child: ListTile(
-                                  title: Text(
-                                    "Rayhon Oilaviy kafe \n(Chilonzor Qatortol) 12",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20),
-                                  ),
-                                  trailing: Icon(
-                                    Icons.location_on_rounded,
-                                    size: 30,
-                                  ),
-                                ),
-                              ),
-                              Card(
-                                color: Color(0xFFEAEBF0),
-                                child: ListTile(
-                                  title: Text(
-                                      "Rayhon Oilaviy kafe \n(Chilonzor Qatortol) 12",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20)),
-                                  trailing: Icon(
-                                    Icons.location_on_rounded,
-                                    size: 30,
-                                  ),
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ]);
-            },
-          );
           _fetchCurrentLocation();
         },
         backgroundColor: Colors.white,
@@ -219,21 +94,162 @@ class _MapPageState extends State<MapPage> {
           onMapCreated: (controller) {
             mapControllerCompleter.complete(controller);
           },
+          onCameraPositionChanged: (cameraPosition, reason, finished) {
+            if (finished) {
+              updateAddressDetail(AppLatLong(
+                  lat: cameraPosition.target.latitude,
+                  long: cameraPosition.target.longitude));
+            }
+          },
         ),
-        const Card(
-          color: Colors.white,
-          margin: EdgeInsets.symmetric(horizontal: 24, vertical: 80),
-          child: ListTile(
-            leading: Icon(
-              Icons.circle_outlined,
-              color: Colors.red,
-              size: 20,
+        GestureDetector(
+          onTap: (){
+            showModalBottomSheet(
+              backgroundColor: Colors.white,
+              barrierColor: Colors.transparent,
+              context: context,
+              builder: (BuildContext context) {
+                return Stack(children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Search bar
+                      Container(
+                        height: 60,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(
+                            left: 24, right: 24, top: 30, bottom: 20),
+                        decoration: BoxDecoration(
+                          color: bottonNavBgColor.withOpacity(0.8),
+                          borderRadius:
+                          const BorderRadius.all(Radius.circular(24)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: bottonNavBgColor.withOpacity(0.3),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            labelText: 'What cource are you looking?',
+                            enabled: true,
+                            prefixIcon: Icon(
+                              Icons.search,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // text Popular courses
+                      Container(
+                          child: const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text("Popular courses",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black)),
+                          )),
+
+                      Container(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: List.generate(
+                              chipLabels.length,
+                                  (index) {
+                                return Chip(
+                                  elevation: 10,
+                                  label: Text(
+                                    chipLabels[index],
+                                    style: TextStyle(color: Color(0xFF2045FE)),
+                                  ),
+                                  backgroundColor: chipLabelsColor,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                      BorderRadius.all(Radius.circular(20))),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      // text My address
+                      Container(
+                        child: Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text("My Address",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black)),
+                        ),
+                      ),
+                      // GridView
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Container(
+                          height: 130,
+                          child: Scrollbar(
+                            child: ListView(
+                              scrollDirection: Axis.vertical,
+                              children: const [
+                                Card(
+                                  color: Color(0xFFEAEBF0),
+                                  child: ListTile(
+                                    title: Text(
+                                      "Rayhon Oilaviy kafe \n(Chilonzor Qatortol) 12",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20),
+                                    ),
+                                    trailing: Icon(
+                                      Icons.location_on_rounded,
+                                      size: 30,
+                                    ),
+                                  ),
+                                ),
+                                Card(
+                                  color: Color(0xFFEAEBF0),
+                                  child: ListTile(
+                                    title: Text(
+                                        "Rayhon Oilaviy kafe \n(Chilonzor Qatortol) 12",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20)),
+                                    trailing: Icon(
+                                      Icons.location_on_rounded,
+                                      size: 30,
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ]);
+              },
+            );
+          },
+          child: Card(
+            color: Colors.white,
+            margin: EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+            child: ListTile(
+              leading: Icon(
+                Icons.circle_outlined,
+                color: Colors.red,
+                size: 20,
+              ),
+              title: Text("Your address >"),
+              titleTextStyle: TextStyle(fontSize: 14, color: Colors.black),
+              subtitle: Text(addressDetail),
+              subtitleTextStyle: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
             ),
-            title: Text("Your address >"),
-            titleTextStyle: TextStyle(fontSize: 14, color: Colors.black),
-            subtitle: Text("Chilonzor"),
-            subtitleTextStyle: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
           ),
         ),
         const Positioned(
@@ -266,6 +282,7 @@ class _MapPageState extends State<MapPage> {
     } catch (_) {
       location = defLocation;
     }
+    updateAddressDetail(location);
     _moveToCurrentLocation(location);
   }
 
@@ -280,9 +297,22 @@ class _MapPageState extends State<MapPage> {
             latitude: appLatLong.lat,
             longitude: appLatLong.long,
           ),
-          zoom: 16,
+          zoom: 14,
         ),
       ),
     );
+  }
+
+  Future<void> updateAddressDetail(AppLatLong latLong) async {
+    addressDetail = "Loading your location";
+    setState(() {});
+    AddressDetailModel? data = await repository.getAddressDetail(latLong);
+    addressDetail = data.responset!.geoObjectCollection!.featureMember!.isEmpty
+        ? "unknown_place"
+        : data.responset!.geoObjectCollection!.featureMember![0].geoObject!
+            .metaDataProperty!.geocoderMetaData!.address!.formatted
+            .toString();
+    setState(() {});
+    print(addressDetail);
   }
 }
